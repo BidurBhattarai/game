@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0d1a0d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+<title>Sudoku — GameHub</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--bg0:#060912;--bg2:#141828;--bg3:#1e2438;--gold:#f0b429;--purple:#8b5cf6;--pink:#e91e8c;--orange:#f97316;--green:#22c55e;--red:#ef4444;--text:#e8eaf0;--text2:#8892a4;--ff-display:'Orbitron',monospace;--ff-body:'Nunito',system-ui,sans-serif;--radius-sm:10px;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg0);color:var(--text);font-family:var(--ff-body);user-select:none;-webkit-user-select:none;}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;background:radial-gradient(ellipse at 50% 0%,#0d1a0d,var(--bg0) 70%);overflow-y:auto;overflow-x:hidden;scrollbar-width:none;}
+.screen::-webkit-scrollbar{display:none}
+.g-topbar{width:100%;display:flex;align-items:center;gap:10px;padding:10px 14px;flex-shrink:0;background:rgba(6,9,18,0.9);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.05);z-index:50;position:sticky;top:0;}
+.g-back{width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,0.08);color:var(--text);font-size:1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;touch-action:manipulation;}
+.g-back:active{background:rgba(255,255,255,0.2)}
+.g-title{font-family:var(--ff-display);font-size:0.85rem;font-weight:900;flex:1;background:linear-gradient(90deg,var(--gold),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.g-score-badge{padding:5px 12px;border-radius:99px;border:1px solid rgba(240,180,41,0.3);font-size:0.75rem;font-weight:800;color:var(--gold);background:rgba(240,180,41,0.08);white-space:nowrap;}
+.sdk-body{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 16px 24px;gap:10px;max-width:420px;margin:0 auto;width:100%;}
+.sdk-diff-row{display:flex;gap:8px}
+.sdk-diff-btn{flex:1;padding:9px 0;border-radius:var(--radius-sm);border:1.5px solid rgba(255,255,255,0.1);background:var(--bg2);color:var(--text2);font-size:0.8rem;font-weight:800;cursor:pointer;transition:all 0.15s;touch-action:manipulation;}
+.sdk-diff-btn.on{border-color:var(--green);background:rgba(34,197,94,0.1);color:var(--green)}
+.sdk-hud{display:flex;gap:0;width:100%;background:var(--bg2);border:1px solid rgba(255,255,255,0.07);border-radius:var(--radius-sm);overflow:hidden;}
+.sdk-hud-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px;border-right:1px solid rgba(255,255,255,0.05)}
+.sdk-hud-item:last-child{border-right:none}
+.sdk-hud-val{font-family:var(--ff-display);font-size:1.1rem;color:var(--green);font-weight:900}
+.sdk-hud-lbl{font-size:0.6rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.sdk-grid{display:grid;grid-template-columns:repeat(9,1fr);width:min(370px,96vw);background:#444;border:3px solid var(--green);border-radius:8px;overflow:hidden;gap:1px;}
+.sdk-cell{background:var(--bg2);aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:clamp(0.72rem,2.8vw,1.05rem);font-weight:700;cursor:pointer;transition:background 0.12s;border:none;color:var(--text);position:relative;touch-action:manipulation;}
+.sdk-cell.given{color:var(--text2);cursor:default;font-weight:900}
+.sdk-cell.sel{background:rgba(34,197,94,0.25)!important}
+.sdk-cell.hl{background:rgba(34,197,94,0.08)}
+.sdk-cell.err{color:var(--red)!important}
+.sdk-cell.br{border-right:2px solid #666}
+.sdk-cell.bb{border-bottom:2px solid #666}
+.sdk-numpad{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;width:min(370px,96vw);}
+.sdk-num{background:var(--bg2);border:1.5px solid rgba(255,255,255,0.08);color:var(--text);border-radius:10px;padding:12px 0;font-size:1rem;font-weight:800;cursor:pointer;transition:background 0.12s;touch-action:manipulation;}
+.sdk-num:active{background:var(--green);color:#000}
+.sdk-erase{grid-column:span 5;padding:11px;font-size:0.88rem}
+.sdk-new-btn{padding:10px 24px;border-radius:var(--radius-sm);background:var(--bg2);border:1.5px solid rgba(34,197,94,0.3);color:var(--green);font-size:0.85rem;font-weight:800;cursor:pointer;touch-action:manipulation;}
+#toast{position:fixed;top:64px;left:50%;transform:translateX(-50%) translateY(-8px);background:rgba(14,18,32,0.96);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:10px 22px;font-size:0.85rem;font-weight:700;color:var(--text);z-index:9999;opacity:0;transition:opacity 0.25s,transform 0.25s;pointer-events:none;white-space:nowrap;max-width:90vw;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<div class="screen">
+  <div class="g-topbar">
+    <button class="g-back" onclick="goHome()">←</button>
+    <div class="g-title">🔢 Sudoku</div>
+    <div class="g-score-badge" id="sdk-score-badge">0 pts</div>
+  </div>
+  <div class="sdk-body">
+    <div class="sdk-diff-row">
+      <button class="sdk-diff-btn on" data-d="easy" onclick="sdkSetDiff('easy')">🟢 Easy</button>
+      <button class="sdk-diff-btn" data-d="medium" onclick="sdkSetDiff('medium')">🟡 Medium</button>
+      <button class="sdk-diff-btn" data-d="hard" onclick="sdkSetDiff('hard')">🔴 Hard</button>
+    </div>
+    <div class="sdk-hud">
+      <div class="sdk-hud-item"><div class="sdk-hud-val" id="sdk-score">0</div><div class="sdk-hud-lbl">Score</div></div>
+      <div class="sdk-hud-item"><div class="sdk-hud-val" id="sdk-time">0:00</div><div class="sdk-hud-lbl">Time</div></div>
+      <div class="sdk-hud-item"><div class="sdk-hud-val" id="sdk-errors">0/3</div><div class="sdk-hud-lbl">Errors</div></div>
+    </div>
+    <div class="sdk-grid" id="sdk-grid"></div>
+    <div class="sdk-numpad" id="sdk-numpad"></div>
+    <button class="sdk-new-btn" onclick="sdkNewGame(sdkDiff)">🔄 New Game</button>
+  </div>
+</div>
+<script>
+const LS={get:(k,d=null)=>{try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):d}catch{return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+let STATE=LS.get('gh_state',{pts:0,played:0,wins:0,best:{}});
+function saveState(){LS.set('gh_state',STATE)}
+function addScore(id,s){STATE.pts+=s;if(!STATE.best[id]||s>STATE.best[id])STATE.best[id]=s;saveState();}
+function addWin(){STATE.wins=(STATE.wins||0)+1;saveState();}
+function goHome(){clearInterval(sdkTimer);window.location.href='../index.html';}
+let _toastT;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(_toastT);_toastT=setTimeout(()=>t.classList.remove('show'),2400);}
+let SDK={};let sdkTimer=null;let sdkDiff='easy';
+function sdkSetDiff(d){sdkDiff=d;document.querySelectorAll('.sdk-diff-btn').forEach(b=>b.classList.toggle('on',b.dataset.d===d));sdkNewGame(d);}
+function sdkNewGame(d){
+  clearInterval(sdkTimer);sdkDiff=d||sdkDiff;SDK.solution=sdkGenSolution();SDK.grid=SDK.solution.map(r=>[...r]);SDK.given=SDK.solution.map(r=>[...r]);SDK.errors=0;SDK.sel=null;SDK.score=0;SDK.timer=0;
+  const removes={easy:33,medium:45,hard:53}[sdkDiff]||33;
+  const cells=[...Array(81).keys()].sort(()=>Math.random()-0.5);
+  cells.slice(0,removes).forEach(i=>{SDK.grid[Math.floor(i/9)][i%9]=0;SDK.given[Math.floor(i/9)][i%9]=0;});
+  document.getElementById('sdk-score').textContent='0';document.getElementById('sdk-errors').textContent='0/3';document.getElementById('sdk-time').textContent='0:00';document.getElementById('sdk-score-badge').textContent='0 pts';
+  sdkTimer=setInterval(()=>{SDK.timer++;const m=Math.floor(SDK.timer/60),s=SDK.timer%60;document.getElementById('sdk-time').textContent=m+':'+(s<10?'0':'')+s;},1000);
+  sdkBuildNumpad();sdkRender();
+}
+function sdkGenSolution(){const b=Array.from({length:9},()=>Array(9).fill(0));sdkSolve(b);return b;}
+function sdkSolve(b){for(let r=0;r<9;r++)for(let c=0;c<9;c++){if(b[r][c]===0){const ns=[1,2,3,4,5,6,7,8,9].sort(()=>Math.random()-0.5);for(const n of ns){if(sdkValid(b,r,c,n)){b[r][c]=n;if(sdkSolve(b))return true;b[r][c]=0;}}return false;}}return true;}
+function sdkValid(b,row,col,n){for(let i=0;i<9;i++){if(b[row][i]===n||b[i][col]===n)return false;}const br=Math.floor(row/3)*3,bc=Math.floor(col/3)*3;for(let r=br;r<br+3;r++)for(let c=bc;c<bc+3;c++)if(b[r][c]===n)return false;return true;}
+function sdkRender(){
+  const g=document.getElementById('sdk-grid');g.innerHTML='';
+  for(let r=0;r<9;r++)for(let c=0;c<9;c++){
+    const el=document.createElement('div');el.className='sdk-cell';
+    if(SDK.given[r][c]!==0)el.classList.add('given');
+    if(SDK.sel&&SDK.sel[0]===r&&SDK.sel[1]===c)el.classList.add('sel');
+    if(SDK.sel){const[sr,sc]=SDK.sel;if((r===sr||c===sc||Math.floor(r/3)===Math.floor(sr/3)&&Math.floor(c/3)===Math.floor(sc/3))&&!(r===sr&&c===sc))el.classList.add('hl');}
+    if(SDK.grid[r][c]!==0){el.textContent=SDK.grid[r][c];if(SDK.given[r][c]===0&&SDK.grid[r][c]!==SDK.solution[r][c])el.classList.add('err');}
+    if(c===2||c===5)el.classList.add('br');if(r===2||r===5)el.classList.add('bb');
+    if(SDK.given[r][c]===0)el.addEventListener('click',()=>{SDK.sel=[r,c];sdkRender();});
+    g.appendChild(el);
+  }
+}
+function sdkBuildNumpad(){
+  const p=document.getElementById('sdk-numpad');p.innerHTML='';
+  for(let n=1;n<=9;n++){const b=document.createElement('button');b.className='sdk-num';b.textContent=n;b.onclick=()=>sdkEnter(n);p.appendChild(b);}
+  const e=document.createElement('button');e.className='sdk-num sdk-erase';e.textContent='✕ Erase';e.onclick=()=>sdkEnter(0);p.appendChild(e);
+}
+function sdkEnter(n){
+  if(!SDK.sel)return;const[r,c]=SDK.sel;if(SDK.given[r][c]!==0)return;SDK.grid[r][c]=n;
+  if(n!==0&&n!==SDK.solution[r][c]){SDK.errors++;document.getElementById('sdk-errors').textContent=SDK.errors+'/3';if(SDK.errors>=3){clearInterval(sdkTimer);addScore('sudoku',SDK.score);toast('❌ 3 errors — Game Over!');setTimeout(()=>sdkNewGame(sdkDiff),1800);return;}}
+  else if(n===SDK.solution[r][c]){SDK.score+=10;document.getElementById('sdk-score').textContent=SDK.score;document.getElementById('sdk-score-badge').textContent=SDK.score+' pts';}
+  if(SDK.grid.every((row,ri)=>row.every((v,ci)=>v===SDK.solution[ri][ci]))){clearInterval(sdkTimer);SDK.score+=500-SDK.timer;addScore('sudoku',SDK.score);addWin();toast('🏆 Sudoku Solved! +500 pts');}
+  sdkRender();
+}
+sdkNewGame('easy');
+history.pushState(null,'',location.href);
+window.addEventListener('popstate',()=>{history.pushState(null,'',location.href);goHome();});
+</script>
+</body>
+</html>
